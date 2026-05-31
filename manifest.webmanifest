@@ -1,0 +1,21 @@
+{
+  "name": "Touch Invaders",
+  "short_name": "Invaders",
+  "description": "A mobile-friendly touch invader game.",
+  "lang": "en",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#07070a",
+  "theme_color": "#07070a",
+  "categories": ["games"],
+  "icons": [
+    {
+      "src": "assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
