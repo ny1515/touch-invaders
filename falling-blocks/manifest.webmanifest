@@ -1,0 +1,19 @@
+{
+  "name": "Falling Blocks",
+  "short_name": "Blocks",
+  "description": "A mobile-friendly falling blocks puzzle game.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#101011",
+  "theme_color": "#101011",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
