@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Falling Blocks icon">
+  <rect width="128" height="128" rx="24" fill="#101011"/>
+  <rect x="18" y="18" width="32" height="32" rx="6" fill="#56d7ff"/>
+  <rect x="50" y="18" width="32" height="32" rx="6" fill="#ffe66b"/>
+  <rect x="18" y="50" width="32" height="32" rx="6" fill="#ff6073"/>
+  <rect x="50" y="50" width="32" height="32" rx="6" fill="#55e07d"/>
+  <rect x="82" y="50" width="32" height="32" rx="6" fill="#c77cff"/>
+  <rect x="50" y="82" width="32" height="32" rx="6" fill="#ff9b3d"/>
+</svg>
