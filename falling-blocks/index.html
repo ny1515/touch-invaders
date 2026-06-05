@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; worker-src 'self'; manifest-src 'self'">
+    <meta name="referrer" content="no-referrer">
+    <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
+    <meta name="theme-color" content="#101011">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Falling Blocks">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Falling Blocks</title>
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="icon" href="./icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="game-shell" aria-label="Falling Blocks game">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span>FALLING BLOCKS</span>
+        </div>
+        <div id="statusLabel" class="status-pill">READY</div>
+      </header>
+
+      <section class="play-area" aria-label="Game area">
+        <div class="board-stage">
+          <div class="board-wrap">
+            <div id="board" class="board" aria-label="Game board"></div>
+            <div id="message" class="message" hidden>
+              <strong id="messageTitle">PAUSED</strong>
+              <span id="messageScore"></span>
+            </div>
+          </div>
+        </div>
+
+        <aside class="status-panel" aria-label="Game status">
+          <div class="stats-grid">
+            <div class="stat">
+              <span>SCORE</span>
+              <strong id="scoreValue">00000</strong>
+            </div>
+            <div class="stat">
+              <span>BEST</span>
+              <strong id="bestValue">00000</strong>
+            </div>
+            <div class="stat">
+              <span>LEVEL</span>
+              <strong id="levelValue">1</strong>
+            </div>
+            <div class="stat">
+              <span>LINES</span>
+              <strong id="linesValue">0</strong>
+            </div>
+          </div>
+
+          <div class="next-panel">
+            <span>NEXT</span>
+            <div id="nextGrid" class="next-grid" aria-label="Next block"></div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="controls" aria-label="Controls">
+        <div class="control-row action-row">
+          <button id="rotateButton" class="control-btn accent" type="button" aria-label="Rotate" title="Rotate">
+            <span aria-hidden="true">&#8635;</span>
+          </button>
+          <button id="hardDropButton" class="control-btn accent" type="button" aria-label="Hard drop" title="Hard drop">
+            <span aria-hidden="true">&#8675;</span>
+          </button>
+          <button id="pauseButton" class="control-btn" type="button" aria-label="Pause" title="Pause">
+            <span aria-hidden="true">||</span>
+          </button>
+          <button id="resetButton" class="control-btn text-btn" type="button" aria-label="Restart" title="Restart">RST</button>
+        </div>
+        <div class="control-row move-row">
+          <button id="leftButton" class="control-btn" type="button" aria-label="Move left" title="Move left">
+            <span aria-hidden="true">&larr;</span>
+          </button>
+          <button id="softDropButton" class="control-btn" type="button" aria-label="Soft drop" title="Soft drop">
+            <span aria-hidden="true">&darr;</span>
+          </button>
+          <button id="rightButton" class="control-btn" type="button" aria-label="Move right" title="Move right">
+            <span aria-hidden="true">&rarr;</span>
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
