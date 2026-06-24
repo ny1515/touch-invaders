@@ -46,7 +46,7 @@
 
           const controlsMarkup = [
             '          <div class="word-list-controls" aria-label="単語の表示方法">',
-            '            <button class="${state.wordListMode === "all" ? "active" : ""}" data-action="set-word-list-mode" data-mode="all">全て表示</button>',
+            '            <button class="${state.wordListMode === "all" && state.wordCategory === "all" ? "active" : ""}" data-action="set-word-list-mode" data-mode="all">全${allWords.length}語表示</button>',
             '            <button class="${state.wordListMode === "random" ? "active" : ""}" data-action="set-word-list-mode" data-mode="random">ランダム10語</button>',
             '            <button class="shuffle-button" data-action="shuffle-word-list" ${state.wordListMode === "random" ? "" : "disabled"}>ランダム更新</button>',
             '          </div>'
@@ -54,7 +54,7 @@
           patched = patched.replace('          <div class="segmented">', controlsMarkup + '\n          <div class="segmented">');
           patched = patched.replace(
             '    if (action === "select-word") {',
-            '    if (action === "set-word-list-mode") {\n      state.wordListMode = button.dataset.mode;\n      state.wordRandomSeed = String(Date.now());\n      state.wordIndex = 0;\n      state.wordFeedback = null;\n      state.wordAnswerVisible = false;\n      state.spellingAnswer = "";\n      render();\n      return;\n    }\n\n    if (action === "shuffle-word-list") {\n      state.wordListMode = "random";\n      state.wordRandomSeed = String(Date.now());\n      state.wordIndex = 0;\n      state.wordFeedback = null;\n      state.wordAnswerVisible = false;\n      state.spellingAnswer = "";\n      render();\n      return;\n    }\n\n    if (action === "select-word") {'
+            '    if (action === "set-word-list-mode") {\n      state.wordListMode = button.dataset.mode;\n      if (state.wordListMode === "all") state.wordCategory = "all";\n      state.wordRandomSeed = String(Date.now());\n      state.wordIndex = 0;\n      state.wordFeedback = null;\n      state.wordAnswerVisible = false;\n      state.spellingAnswer = "";\n      render();\n      return;\n    }\n\n    if (action === "shuffle-word-list") {\n      state.wordListMode = "random";\n      state.wordRandomSeed = String(Date.now());\n      state.wordIndex = 0;\n      state.wordFeedback = null;\n      state.wordAnswerVisible = false;\n      state.spellingAnswer = "";\n      render();\n      return;\n    }\n\n    if (action === "select-word") {'
           );
           patched = patched.replace(
             '      state.wordCategory = "all";\n      state.wordAnswerVisible = false;',
@@ -262,7 +262,7 @@
                   controls = document.createElement("div");
                   controls.className = "word-list-controls fallback-word-list-controls";
                   controls.setAttribute("aria-label", "単語の表示方法");
-                  controls.innerHTML = '<button data-fallback-word-list-mode="all">全て表示</button><button data-fallback-word-list-mode="random">ランダム10語</button><button data-fallback-word-list-mode="shuffle">ランダム更新</button>';
+                  controls.innerHTML = '<button data-fallback-word-list-mode="all">全100語表示</button><button data-fallback-word-list-mode="random">ランダム10語</button><button data-fallback-word-list-mode="shuffle">ランダム更新</button>';
                   segmented.insertAdjacentElement("beforebegin", controls);
                 }
                 controls.querySelectorAll("button").forEach((button) => {
@@ -279,6 +279,12 @@
                 const mode = button.dataset.fallbackWordListMode;
                 if (mode === "all") {
                   fallbackWordListMode = "all";
+                  const select = document.querySelector('.tool-layout > .tool-panel select[data-action="change-category"]');
+                  if (select && select.value !== "all") {
+                    select.value = "all";
+                    select.dispatchEvent(new Event("change", { bubbles: true }));
+                    return;
+                  }
                 } else {
                   fallbackWordListMode = "random";
                   fallbackRandomIndexes = [];
