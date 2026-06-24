@@ -25,6 +25,48 @@
           return new Response(stream).text();
         }
 
+        function patchAppSource(appHtml) {
+          let patched = appHtml;
+          patched = patched.replace(
+            'wordCategory: "all",',
+            'wordCategory: "all",\n    wordListMode: "all",\n    wordRandomSeed: "initial",'
+          );
+          patched = patched.replace(
+            /function getFilteredWords\(\) \{\s*const words = wordsFor\(\);\s*return state\.wordCategory === "all" \? words : words\.filter\(\(word\) => word\.category === state\.wordCategory\);\s*\}/,
+            'function getCategoryWords() {\n    const words = wordsFor();\n    return state.wordCategory === "all" ? words : words.filter((word) => word.category === state.wordCategory);\n  }\n\n  function getFilteredWords() {\n    const words = getCategoryWords();\n    if (state.wordListMode !== "random") return words;\n    return shuffle(words, progress.selectedLevel + ":" + state.wordCategory + ":" + state.wordRandomSeed).slice(0, Math.min(10, words.length));\n  }'
+          );
+          patched = patched.replace(
+            /const words = getFilteredWords\(\);\s*const word = getCurrentWord\(\);\s*const categories = \["all", \.\.\.new Set\(wordsFor\(\)\.map\(\(item\) => item\.category\)\)\];/,
+            'const words = getFilteredWords();\n    const word = getCurrentWord();\n    const allWords = wordsFor();\n    const categoryWords = getCategoryWords();\n    const categories = ["all", ...new Set(allWords.map((item) => item.category))];\n    const displayNote = state.wordListMode === "random"\n      ? "全" + categoryWords.length + "語からランダム" + words.length + "語を表示"\n      : state.wordCategory === "all"\n        ? "選択中レベルの全" + allWords.length + "語を表示"\n        : "全" + allWords.length + "語中 " + categoryWords.length + "語を表示";'
+          );
+          patched = patched.replace(
+            '<h2>${words.length}語</h2>',
+            '<h2>${words.length}語</h2>\n              <small class="word-count-note">${displayNote}</small>'
+          );
+
+          const controlsMarkup = [
+            '          <div class="word-list-controls" aria-label="単語の表示方法">',
+            '            <button class="${state.wordListMode === "all" ? "active" : ""}" data-action="set-word-list-mode" data-mode="all">全て表示</button>',
+            '            <button class="${state.wordListMode === "random" ? "active" : ""}" data-action="set-word-list-mode" data-mode="random">ランダム10語</button>',
+            '            <button class="shuffle-button" data-action="shuffle-word-list" ${state.wordListMode === "random" ? "" : "disabled"}>ランダム更新</button>',
+            '          </div>'
+          ].join("\n");
+          patched = patched.replace('          <div class="segmented">', controlsMarkup + '\n          <div class="segmented">');
+          patched = patched.replace(
+            '    if (action === "select-word") {',
+            '    if (action === "set-word-list-mode") {\n      state.wordListMode = button.dataset.mode;\n      state.wordRandomSeed = String(Date.now());\n      state.wordIndex = 0;\n      state.wordFeedback = null;\n      state.wordAnswerVisible = false;\n      state.spellingAnswer = "";\n      render();\n      return;\n    }\n\n    if (action === "shuffle-word-list") {\n      state.wordListMode = "random";\n      state.wordRandomSeed = String(Date.now());\n      state.wordIndex = 0;\n      state.wordFeedback = null;\n      state.wordAnswerVisible = false;\n      state.spellingAnswer = "";\n      render();\n      return;\n    }\n\n    if (action === "select-word") {'
+          );
+          patched = patched.replace(
+            '      state.wordCategory = "all";\n      state.wordAnswerVisible = false;',
+            '      state.wordCategory = "all";\n      state.wordListMode = "all";\n      state.wordRandomSeed = String(Date.now());\n      state.wordAnswerVisible = false;'
+          );
+          patched = patched.replace(
+            '      state.wordCategory = control.value;\n      state.wordIndex = 0;\n      state.wordFeedback = null;',
+            '      state.wordCategory = control.value;\n      state.wordIndex = 0;\n      state.wordListMode = "all";\n      state.wordRandomSeed = String(Date.now());\n      state.wordFeedback = null;'
+          );
+          return patched;
+        }
+
         const [source, extraSource] = await Promise.all([
           fetch(baseUrl, { cache: "no-store" }).then((response) => {
             if (!response.ok) throw new Error(`Base app load failed: ${response.status}`);
@@ -42,11 +84,13 @@
         if (!extraMatch) throw new Error("Extra word payload not found");
 
         let html = await inflateBase64(baseMatch[1]);
+        html = patchAppSource(html);
         const extraWordsJson = await inflateBase64(extraMatch[1]);
-        const dataPatch = `
-          <script>
+        const safeExtraWordsJson = extraWordsJson.replaceAll("</scr" + "ipt", "<\\/script");
+
+        const dataPatch = "<scr" + "ipt>\n" + `
             (() => {
-              const extraWords = ${extraWordsJson.replaceAll("</script", "<\\/script")};
+              const extraWords = ${safeExtraWordsJson};
               const existingWordIds = new Set(window.ENGLISH_STEP_DATA.words.map((word) => word.id));
               window.ENGLISH_STEP_DATA.words.push(...extraWords.filter((word) => !existingWordIds.has(word.id)));
 
@@ -74,7 +118,7 @@
                   .filter((question) => !existingQuizIds.has(question.id))
               );
             })();
-          <\/script>`;
+          ` + "\n</scr" + "ipt>";
 
         const uiPatch = `
           <style>
@@ -93,9 +137,34 @@
               font-size: 0.85rem;
               font-weight: 800;
             }
+            .word-list-controls {
+              display: grid;
+              grid-template-columns: repeat(3, minmax(0, 1fr));
+              gap: 8px;
+            }
+            .word-list-controls button {
+              min-height: 40px;
+              border: 1px solid var(--line);
+              border-radius: var(--radius);
+              color: var(--muted);
+              font-weight: 800;
+              background: #ffffff;
+              cursor: pointer;
+            }
+            .word-list-controls button.active {
+              color: #ffffff;
+              border-color: var(--teal);
+              background: var(--teal);
+            }
+            .word-list-controls button:disabled {
+              cursor: not-allowed;
+              opacity: 0.55;
+            }
             .word-card-pager { display: none; }
             .word-card-pager span { color: var(--muted); font-weight: 900; text-align: center; }
             @media (max-width: 760px) {
+              .word-list-controls { grid-template-columns: 1fr; }
+              .word-list-controls button { min-height: 48px; }
               .word-card-pager {
                 position: sticky;
                 top: 8px;
@@ -118,8 +187,11 @@
               .word-card + .pager { display: none; }
             }
           </style>
-          <script>
+        ` + "<scr" + "ipt>\n" + `
             (() => {
+              let fallbackWordListMode = "all";
+              let fallbackRandomIndexes = [];
+
               function syncWordCardPager() {
                 const card = document.querySelector(".word-card");
                 if (!card) return;
@@ -140,26 +212,83 @@
                 pager.querySelector("span").textContent = count;
               }
 
-              function syncWordListCount() {
-                const panel = document.querySelector(".tool-layout > .tool-panel");
-                const heading = panel?.querySelector(".section-heading h2");
-                const list = panel?.querySelector(".mini-list");
-                if (!panel || !heading || !list) return;
-                const count = list.querySelectorAll('[data-action="select-word"]').length;
-                if (!count) return;
+              function getFallbackWordButtons(panel) {
+                return [...panel.querySelectorAll('.mini-list [data-action="select-word"]')];
+              }
+
+              function pickFallbackRandom(count) {
+                const indexes = [...Array(count).keys()];
+                for (let index = indexes.length - 1; index > 0; index -= 1) {
+                  const swapIndex = Math.floor(Math.random() * (index + 1));
+                  [indexes[index], indexes[swapIndex]] = [indexes[swapIndex], indexes[index]];
+                }
+                return indexes.slice(0, Math.min(10, count));
+              }
+
+              function applyFallbackWordList(panel) {
+                const buttons = getFallbackWordButtons(panel);
+                if (!buttons.length) return;
+                if (fallbackWordListMode === "random" && fallbackRandomIndexes.length !== buttons.length) {
+                  fallbackRandomIndexes = pickFallbackRandom(buttons.length);
+                }
+                const visibleIndexes = new Set(fallbackWordListMode === "random" ? fallbackRandomIndexes : buttons.map((_, index) => index));
+                buttons.forEach((button, index) => {
+                  button.hidden = !visibleIndexes.has(index);
+                });
+                const visibleCount = buttons.filter((button) => !button.hidden).length;
+                const heading = panel.querySelector(".section-heading h2");
+                if (heading) heading.textContent = visibleCount + "語";
                 let note = panel.querySelector(".word-count-note");
-                if (!note) {
+                if (!note && heading) {
                   note = document.createElement("small");
                   note.className = "word-count-note";
                   heading.insertAdjacentElement("afterend", note);
                 }
-                const noteText = ` + "`一覧に${count}語を表示中`" + `;
-                if (note.textContent !== noteText) note.textContent = noteText;
+                if (note) {
+                  note.textContent = fallbackWordListMode === "random"
+                    ? "全" + buttons.length + "語からランダム" + visibleCount + "語を表示"
+                    : "選択中レベルの全" + buttons.length + "語を表示";
+                }
               }
+
+              function syncFallbackWordControls() {
+                const panel = document.querySelector(".tool-layout > .tool-panel");
+                if (!panel) return;
+                if (panel.querySelector(".word-list-controls:not(.fallback-word-list-controls)")) return;
+                const segmented = panel.querySelector(".segmented");
+                if (!segmented) return;
+                let controls = panel.querySelector(".fallback-word-list-controls");
+                if (!controls) {
+                  controls = document.createElement("div");
+                  controls.className = "word-list-controls fallback-word-list-controls";
+                  controls.setAttribute("aria-label", "単語の表示方法");
+                  controls.innerHTML = '<button data-fallback-word-list-mode="all">全て表示</button><button data-fallback-word-list-mode="random">ランダム10語</button><button data-fallback-word-list-mode="shuffle">ランダム更新</button>';
+                  segmented.insertAdjacentElement("beforebegin", controls);
+                }
+                controls.querySelectorAll("button").forEach((button) => {
+                  const mode = button.dataset.fallbackWordListMode;
+                  button.classList.toggle("active", mode === fallbackWordListMode || (mode === "shuffle" && fallbackWordListMode === "random"));
+                  if (mode === "shuffle") button.disabled = fallbackWordListMode !== "random";
+                });
+                applyFallbackWordList(panel);
+              }
+
+              document.addEventListener("click", (event) => {
+                const button = event.target.closest("[data-fallback-word-list-mode]");
+                if (!button) return;
+                const mode = button.dataset.fallbackWordListMode;
+                if (mode === "all") {
+                  fallbackWordListMode = "all";
+                } else {
+                  fallbackWordListMode = "random";
+                  fallbackRandomIndexes = [];
+                }
+                syncFallbackWordControls();
+              });
 
               function syncWordUi() {
                 syncWordCardPager();
-                syncWordListCount();
+                syncFallbackWordControls();
               }
 
               let syncQueued = false;
@@ -175,10 +304,10 @@
               new MutationObserver(queueWordUiSync).observe(document.body, { childList: true, subtree: true });
               requestAnimationFrame(syncWordUi);
             })();
-          <\/script>`;
+          ` + "\n</scr" + "ipt>";
 
-        html = html.replace(/<script>\s*\(function \(\)/, `${dataPatch}$&`);
-        html = html.replace("</body>", `${uiPatch}</body>`);
+        html = html.replace(/<script>\s*\(function \(\)/, dataPatch + "$&");
+        html = html.replace("</body>", uiPatch + "</body>");
         document.open();
         document.write(html);
         document.close();
