@@ -76,8 +76,23 @@
             })();
           <\/script>`;
 
-        const mobilePagerPatch = `
+        const uiPatch = `
           <style>
+            .tool-layout > .tool-panel { position: static; }
+            .mini-list {
+              display: grid;
+              gap: 8px;
+              max-height: none;
+              overflow: visible;
+              padding-right: 0;
+            }
+            .word-count-note {
+              display: block;
+              margin-top: 4px;
+              color: var(--muted);
+              font-size: 0.85rem;
+              font-weight: 800;
+            }
             .word-card-pager { display: none; }
             .word-card-pager span { color: var(--muted); font-weight: 900; text-align: center; }
             @media (max-width: 760px) {
@@ -124,13 +139,35 @@
                 pager.innerHTML = '<button class="secondary-button" data-action="prev-word">前へ</button><span></span><button class="secondary-button" data-action="next-word">次へ</button>';
                 pager.querySelector("span").textContent = count;
               }
-              new MutationObserver(syncWordCardPager).observe(document.body, { childList: true, subtree: true });
-              requestAnimationFrame(syncWordCardPager);
+
+              function syncWordListCount() {
+                const panel = document.querySelector(".tool-layout > .tool-panel");
+                const heading = panel?.querySelector(".section-heading h2");
+                const list = panel?.querySelector(".mini-list");
+                if (!panel || !heading || !list) return;
+                const count = list.querySelectorAll('[data-action="select-word"]').length;
+                if (!count) return;
+                let note = panel.querySelector(".word-count-note");
+                if (!note) {
+                  note = document.createElement("small");
+                  note.className = "word-count-note";
+                  heading.insertAdjacentElement("afterend", note);
+                }
+                note.textContent = ` + "`一覧に${count}語を表示中`" + `;
+              }
+
+              function syncWordUi() {
+                syncWordCardPager();
+                syncWordListCount();
+              }
+
+              new MutationObserver(syncWordUi).observe(document.body, { childList: true, subtree: true });
+              requestAnimationFrame(syncWordUi);
             })();
           <\/script>`;
 
         html = html.replace(/<script>\s*\(function \(\)/, `${dataPatch}$&`);
-        html = html.replace("</body>", `${mobilePagerPatch}</body>`);
+        html = html.replace("</body>", `${uiPatch}</body>`);
         document.open();
         document.write(html);
         document.close();
