@@ -312,7 +312,7 @@
             })();
           ` + "\n</scr" + "ipt>";
 
-        html = html.replace(/<script>\s*\(function \(\)/, dataPatch + "$&");
+        html = html.replace(/<script>\s*(?:\(\(\) => \{|\(function \(\))/, dataPatch + "$&");
         html = html.replace("</body>", uiPatch + "</body>");
         document.open();
         document.write(html);
