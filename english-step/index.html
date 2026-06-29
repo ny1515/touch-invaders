@@ -52,6 +52,21 @@
             '          </div>'
           ].join("\n");
           patched = patched.replace('          <div class="segmented">', controlsMarkup + '\n          <div class="segmented">');
+
+          const wordSelectMarkup = [
+            '          <label class="field-label word-select-field">',
+            '            単語を選ぶ',
+            '            <select data-action="change-word">',
+            '            ${words.map((item, index) => `',
+            '              <option value="${index}" data-word-option="true" ${item.id === word.id ? "selected" : ""}>',
+            '                ${index + 1}. ${escapeHtml(state.wordMode === "flash" ? item.meaning : item.word)}${progress.learnedWordIds.includes(item.id) ? "（済）" : ""}',
+            '              </option>',
+            '            `).join("")}',
+            '            </select>',
+            '          </label>',
+            '        </aside>'
+          ].join("\n");
+          patched = patched.replace(/          <div class="mini-list">[\s\S]*?          <\/div>\n        <\/aside>/, wordSelectMarkup);
           patched = patched.replace(
             '    if (action === "select-word") {',
             '    if (action === "set-word-list-mode") {\n      state.wordListMode = button.dataset.mode;\n      if (state.wordListMode === "all") state.wordCategory = "all";\n      state.wordRandomSeed = String(Date.now());\n      state.wordIndex = 0;\n      state.wordFeedback = null;\n      state.wordAnswerVisible = false;\n      state.spellingAnswer = "";\n      render();\n      return;\n    }\n\n    if (action === "shuffle-word-list") {\n      state.wordListMode = "random";\n      state.wordRandomSeed = String(Date.now());\n      state.wordIndex = 0;\n      state.wordFeedback = null;\n      state.wordAnswerVisible = false;\n      state.spellingAnswer = "";\n      render();\n      return;\n    }\n\n    if (action === "select-word") {'
@@ -63,6 +78,10 @@
           patched = patched.replace(
             '      state.wordCategory = control.value;\n      state.wordIndex = 0;\n      state.wordFeedback = null;',
             '      state.wordCategory = control.value;\n      state.wordIndex = 0;\n      state.wordListMode = "all";\n      state.wordRandomSeed = String(Date.now());\n      state.wordFeedback = null;'
+          );
+          patched = patched.replace(
+            '    if (control.dataset.action === "change-category") {',
+            '    if (control.dataset.action === "change-word") {\n      state.wordIndex = Number(control.value);\n      state.wordFeedback = null;\n      state.wordAnswerVisible = false;\n      state.spellingAnswer = "";\n      render();\n    }\n\n    if (control.dataset.action === "change-category") {'
           );
           return patched;
         }
@@ -159,6 +178,15 @@
             .word-list-controls button:disabled {
               cursor: not-allowed;
               opacity: 0.55;
+            }
+            .word-select-field select {
+              width: 100%;
+              min-height: 46px;
+              border: 1px solid var(--line);
+              border-radius: var(--radius);
+              color: var(--text);
+              font-weight: 800;
+              background: #ffffff;
             }
             .word-card-pager { display: none; }
             .word-card-pager span { color: var(--muted); font-weight: 900; text-align: center; }
